@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"grep/worklist"
+	"grep/worker"
 )
 
 
@@ -25,7 +26,7 @@ func extractAllFiles(wl *worklist.Worklist, path string) {
 			fmt.Println("Adding directory ", entry.Name())
 			nextPath := path + "/" + entry.Name()
 			extractAllFiles(wl, nextPath)
-1
+
 		// * Meaning that the entry is a file
 		} else {
 			fmt.Println("Adding file ", entry.Name())
@@ -35,7 +36,12 @@ func extractAllFiles(wl *worklist.Worklist, path string) {
 }
 
 func main() {
+
+
 	wl := worklist.New(100)
+
+	results := make(chan worker.Result, 100)
+
 	numWorkers := 10
 
 	path := os.Args[2]
@@ -50,12 +56,16 @@ func main() {
 			for {
 				entry := wl.Next()
 				if entry.Path != "" {
-					// * Do something with the file
-				}
-				else {
+					workerResult := worker.ProcessFile(entry.Path, os.Args[1])
+                    if workerResult != nil {
+                     for _, r := range workerResult.Inner {
+                         results <- r
+                     }
+                    }
+				} else {
 					// ! If the path is empty, then the worker should terminate as there
 					// ! are no more files to process
-					break
+					return
 				}
 
 			}
@@ -63,7 +73,13 @@ func main() {
 	}
 
 	// ? Wait for all the workers to finish
-
-	
+	go func() {
+		for {
+         select {
+         case r := <-results:
+             fmt.Printf("%v[%v]:%v\n", r.Path, r.LineNum, r.Line)
+         }
+        }
+	}()
 
 }
