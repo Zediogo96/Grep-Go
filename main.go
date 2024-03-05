@@ -5,7 +5,9 @@ import (
 	"os"
 	"grep/worklist"
 	"grep/worker"
+	"grep/utils"
 	"sync"
+
 )
 
 
@@ -89,7 +91,7 @@ func main() {
         for {
             select {
             case r := <-results:
-                fmt.Printf("String: %s, LineNum: %d, Path: %s\n", r.Line, r.LineNum, r.Path)
+				utils.PrintColoredResult(r)
             case <-blockWorkersWg:
              // Make sure channel is empty before aborting display goroutine
              if len(results) == 0 {
