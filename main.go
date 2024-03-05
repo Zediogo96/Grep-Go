@@ -5,6 +5,7 @@ import (
 	"os"
 	"grep/worklist"
 	"grep/worker"
+	"sync"
 )
 
 
@@ -23,20 +24,20 @@ func extractAllFiles(wl *worklist.Worklist, path string) {
 	// * Iterate through all the files in the current directory
 	for _, entry := range entries {
 		if entry.IsDir() {
-			fmt.Println("Adding directory ", entry.Name())
+			// fmt.Println("Adding directory ", entry.Name())
 			nextPath := path + "/" + entry.Name()
 			extractAllFiles(wl, nextPath)
 
 		// * Meaning that the entry is a file
 		} else {
-			fmt.Println("Adding file ", entry.Name())
+			// fmt.Println("Adding file ", entry.Name())
 			wl.Add(worklist.NewJob(path + "/" + entry.Name()))
 		}
 	}
 }
 
 func main() {
-
+	var workersWG sync.WaitGroup
 
 	wl := worklist.New(100)
 
@@ -46,40 +47,57 @@ func main() {
 
 	path := os.Args[2]
 
+	workersWG.Add(1)
+
 	go func() {
-		wl.Finalize(numWorkers)
+		defer workersWG.Done()
 		extractAllFiles(&wl, path)
+		wl.Finalize(numWorkers)
 	}()
 
 	for i := 0; i < numWorkers; i++ {
+		workersWG.Add(1)
 		go func() {
+			defer workersWG.Done()
 			for {
 				entry := wl.Next()
 				if entry.Path != "" {
 					workerResult := worker.ProcessFile(entry.Path, os.Args[1])
-                    if workerResult != nil {
-                     for _, r := range workerResult.Inner {
-                         results <- r
-                     }
-                    }
+					if workerResult != nil {
+						for _, r := range workerResult.Inner {
+							results <- r
+						}
+					}
 				} else {
-					// ! If the path is empty, then the worker should terminate as there
-					// ! are no more files to process
-					return
+					return // Terminate the worker goroutine when no more files to process
 				}
-
 			}
 		}()
 	}
 
-	// ? Wait for all the workers to finish
-	go func() {
-		for {
-         select {
-         case r := <-results:
-             fmt.Printf("%v[%v]:%v\n", r.Path, r.LineNum, r.Line)
-         }
-        }
-	}()
+	blockWorkersWg := make(chan struct{})
+    go func() {
+     workersWG.Wait()
+     // Close channel
+     close(blockWorkersWg)
+    }()
 
+	var displayWg sync.WaitGroup
+    displayWg.Add(1)
+
+	go func() {
+        for {
+            select {
+            case r := <-results:
+                fmt.Printf("String: %s, LineNum: %d, Path: %s\n", r.Line, r.LineNum, r.Path)
+            case <-blockWorkersWg:
+             // Make sure channel is empty before aborting display goroutine
+             if len(results) == 0 {
+                 displayWg.Done()
+                 return
+             }
+            }
+        }
+    }()
+    displayWg.Wait()
 }
