@@ -7,7 +7,7 @@ import (
 	"grep/worker"
 	"grep/utils"
 	"sync"
-
+	"flag"
 )
 
 
@@ -26,13 +26,11 @@ func extractAllFiles(wl *worklist.Worklist, path string) {
 	// * Iterate through all the files in the current directory
 	for _, entry := range entries {
 		if entry.IsDir() {
-			// fmt.Println("Adding directory ", entry.Name())
-			nextPath := path + "/" + entry.Name()
+			nextPath := path + entry.Name()
 			extractAllFiles(wl, nextPath)
 
 		// * Meaning that the entry is a file
 		} else {
-			// fmt.Println("Adding file ", entry.Name())
 			wl.Add(worklist.NewJob(path + "/" + entry.Name()))
 		}
 	}
@@ -47,9 +45,22 @@ func main() {
 
 	numWorkers := 10
 
-	path := os.Args[2]
+
 
 	workersWG.Add(1)
+
+	caseSensitive := flag.Bool("i", false, "Perform a case-sensitive search")
+	flag.Parse()
+
+	// * Print all the active flags
+	fmt.Println("Active flags: ")
+	flag.PrintDefaults()
+
+
+	NON_FLAG_ARGS := flag.Args()
+
+	pattern := NON_FLAG_ARGS[0]
+	path := NON_FLAG_ARGS[1]
 
 	go func() {
 		defer workersWG.Done()
@@ -64,7 +75,7 @@ func main() {
 			for {
 				entry := wl.Next()
 				if entry.Path != "" {
-					workerResult := worker.ProcessFile(entry.Path, os.Args[1])
+					workerResult := worker.ProcessFile(entry.Path, pattern, *caseSensitive)
 					if workerResult != nil {
 						for _, r := range workerResult.Inner {
 							results <- r
@@ -80,7 +91,6 @@ func main() {
 	blockWorkersWg := make(chan struct{})
     go func() {
      workersWG.Wait()
-     // Close channel
      close(blockWorkersWg)
     }()
 
