@@ -49,10 +49,8 @@ func main() {
 
 	caseSensitive := flag.Bool("i", false, "Perform a case-sensitive search")
 	numWorkers := flag.Int("w", 10, "Number of workers to use")
+	useRegex := flag.Bool("e", false, "Use a regular expression search")
 	flag.Parse()
-
-	fmt.Println("Case sensitive: ", *caseSensitive)
-	fmt.Println("Number of workers: ", *numWorkers)
 
 	// * Print all the active flags
 	fmt.Println("Active flags: ")
@@ -66,8 +64,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	pattern := NON_FLAG_ARGS[0]
+	var searchTerm string
+
 	path := NON_FLAG_ARGS[1]
+
+	searchTerm = NON_FLAG_ARGS[0]
 
 	go func() {
 		defer workersWG.Done()
@@ -82,7 +83,7 @@ func main() {
 			for {
 				entry := wl.Next()
 				if entry.Path != "" {
-					workerResult := worker.ProcessFile(entry.Path, pattern, *caseSensitive)
+					workerResult := worker.ProcessFile(entry.Path, searchTerm, *caseSensitive, *useRegex)
 					if workerResult != nil {
 						for _, r := range workerResult.Inner {
 							results <- r
