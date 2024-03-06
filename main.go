@@ -43,14 +43,16 @@ func main() {
 
 	results := make(chan worker.Result, 100)
 
-	numWorkers := 10
-
 
 
 	workersWG.Add(1)
 
 	caseSensitive := flag.Bool("i", false, "Perform a case-sensitive search")
+	numWorkers := flag.Int("w", 10, "Number of workers to use")
 	flag.Parse()
+
+	fmt.Println("Case sensitive: ", *caseSensitive)
+	fmt.Println("Number of workers: ", *numWorkers)
 
 	// * Print all the active flags
 	fmt.Println("Active flags: ")
@@ -70,10 +72,10 @@ func main() {
 	go func() {
 		defer workersWG.Done()
 		extractAllFiles(&wl, path)
-		wl.Finalize(numWorkers)
+		wl.Finalize(*numWorkers)
 	}()
 
-	for i := 0; i < numWorkers; i++ {
+	for i := 0; i < *numWorkers; i++ {
 		workersWG.Add(1)
 		go func() {
 			defer workersWG.Done()
