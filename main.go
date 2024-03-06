@@ -59,6 +59,11 @@ func main() {
 
 	NON_FLAG_ARGS := flag.Args()
 
+	if len(NON_FLAG_ARGS) < 2 {
+		fmt.Println("Usage: grep [flags] pattern path")
+		os.Exit(1)
+	}
+
 	pattern := NON_FLAG_ARGS[0]
 	path := NON_FLAG_ARGS[1]
 
