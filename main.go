@@ -10,6 +10,14 @@ import (
 	"sync"
 )
 
+var (
+	// ANSI escape codes for text colors
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorReset  = "\033[0m"
+)
+
 func extractAllFiles(wl *worklist.Worklist, path string) {
 
 	// * Get all the files in the current directory
@@ -101,6 +109,10 @@ func main() {
 	displayWg.Add(1)
 
 	fmt.Println("\nResults: ")
+
+	if len(results) == 0 {
+		fmt.Printf("\n%sNo results found for pattern: %s%s%s\n", colorYellow, colorRed, searchTerm, colorReset)
+	}
 
 	go func() {
 		for {
