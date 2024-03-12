@@ -1,11 +1,11 @@
 package worker
 
 import (
-    "bufio"
-    "fmt"
-    "os"
-    "strings"
-    "regexp"
+	"bufio"
+	"fmt"
+	"os"
+	"regexp"
+	"strings"
 )
 
 type Result struct {

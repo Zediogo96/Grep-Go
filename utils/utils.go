@@ -1,9 +1,9 @@
-
 package utils
 
 import (
 	"fmt"
 	"grep/worker"
+	"strings"
 )
 
 var (
@@ -14,9 +14,36 @@ var (
 	colorReset  = "\033[0m"
 )
 
+type FormattedResult struct {
+	Line         string
+	diffStartPos int
+	diffEndPos   int
+}
 
-func PrintColoredResult(r worker.Result) {
+func PrintColoredResult(r worker.Result, pattern string) {
 
-	fmt.Printf("%s%s > found %s'%s' at line %s%d%s\n",
-	colorGreen, r.Path, colorYellow, r.Line, colorRed, r.LineNum, colorReset)
+	if r.Line == "" {
+		return
+	}
+
+	var formattedResult FormattedResult
+
+	formattedResult.Line = r.Line
+	formattedResult.diffStartPos = strings.Index(strings.ToLower(r.Line), strings.ToLower(pattern))
+	formattedResult.diffEndPos = formattedResult.diffStartPos + len(pattern)
+
+	// If the pattern is not found, print the line as is, and return
+	if formattedResult.diffStartPos == -1 {
+		return
+	}
+
+	beforePattern := r.Line[:formattedResult.diffStartPos]
+	afterPattern := r.Line[formattedResult.diffEndPos:]
+	patternColor := colorRed + pattern + colorReset
+	pathColor := colorYellow + r.Path + colorReset
+	lineNumColor := colorGreen + fmt.Sprint(r.LineNum) + colorReset
+
+	// Print the string, using FormattedResult and
+	fmt.Printf("%s > line %s > %s%s%s \n", pathColor, lineNumColor, beforePattern, patternColor, afterPattern)
+
 }

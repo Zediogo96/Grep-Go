@@ -1,15 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"grep/worklist"
-	"grep/worker"
-	"grep/utils"
-	"sync"
 	"flag"
+	"fmt"
+	"grep/utils"
+	"grep/worker"
+	"grep/worklist"
+	"os"
+	"sync"
 )
-
 
 func extractAllFiles(wl *worklist.Worklist, path string) {
 
@@ -22,14 +21,13 @@ func extractAllFiles(wl *worklist.Worklist, path string) {
 		return
 	}
 
-
 	// * Iterate through all the files in the current directory
 	for _, entry := range entries {
 		if entry.IsDir() {
 			nextPath := path + entry.Name()
 			extractAllFiles(wl, nextPath)
 
-		// * Meaning that the entry is a file
+			// * Meaning that the entry is a file
 		} else {
 			wl.Add(worklist.NewJob(path + "/" + entry.Name()))
 		}
@@ -43,8 +41,6 @@ func main() {
 
 	results := make(chan worker.Result, 100)
 
-
-
 	workersWG.Add(1)
 
 	caseSensitive := flag.Bool("i", false, "Perform a case-sensitive search")
@@ -55,7 +51,6 @@ func main() {
 	// * Print all the active flags
 	fmt.Println("Active flags: ")
 	flag.PrintDefaults()
-
 
 	NON_FLAG_ARGS := flag.Args()
 
@@ -97,27 +92,29 @@ func main() {
 	}
 
 	blockWorkersWg := make(chan struct{})
-    go func() {
-     workersWG.Wait()
-     close(blockWorkersWg)
-    }()
+	go func() {
+		workersWG.Wait()
+		close(blockWorkersWg)
+	}()
 
 	var displayWg sync.WaitGroup
-    displayWg.Add(1)
+	displayWg.Add(1)
+
+	fmt.Println("\nResults: ")
 
 	go func() {
-        for {
-            select {
-            case r := <-results:
-				utils.PrintColoredResult(r)
-            case <-blockWorkersWg:
-             // Make sure channel is empty before aborting display goroutine
-             if len(results) == 0 {
-                 displayWg.Done()
-                 return
-             }
-            }
-        }
-    }()
-    displayWg.Wait()
+		for {
+			select {
+			case r := <-results:
+				utils.PrintColoredResult(r, searchTerm)
+			case <-blockWorkersWg:
+				// Make sure channel is empty before aborting display goroutine
+				if len(results) == 0 {
+					displayWg.Done()
+					return
+				}
+			}
+		}
+	}()
+	displayWg.Wait()
 }
