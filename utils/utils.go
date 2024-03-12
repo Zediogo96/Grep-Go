@@ -15,35 +15,58 @@ var (
 )
 
 type FormattedResult struct {
-	Line         string
 	diffStartPos int
 	diffEndPos   int
 }
 
-func PrintColoredResult(r worker.Result, pattern string) {
+func PrintResultsColored(r worker.Result, pattern string) {
 
 	if r.Line == "" {
 		return
 	}
 
+	line := r.Line
+
 	var formattedResult FormattedResult
+	startPos := 0
+	matchedPositions := []FormattedResult{} // Keep track of matched positions
 
-	formattedResult.Line = r.Line
-	formattedResult.diffStartPos = strings.Index(strings.ToLower(r.Line), strings.ToLower(pattern))
-	formattedResult.diffEndPos = formattedResult.diffStartPos + len(pattern)
+	absoluteIndex := 0
 
-	// If the pattern is not found, print the line as is, and return
-	if formattedResult.diffStartPos == -1 {
-		return
+	for {
+		startPos = strings.Index(line, pattern)
+
+		if startPos == -1 {
+			absoluteIndex = 0
+			break
+		}
+
+		endPos := startPos + len(pattern)
+
+		formattedResult.diffStartPos = startPos + absoluteIndex
+		formattedResult.diffEndPos = endPos + absoluteIndex
+		matchedPositions = append(matchedPositions, formattedResult)
+
+		line = line[endPos:]
+		// Remove the matched pattern from the line
+		absoluteIndex += endPos
 	}
 
-	beforePattern := r.Line[:formattedResult.diffStartPos]
-	afterPattern := r.Line[formattedResult.diffEndPos:]
-	patternColor := colorRed + pattern + colorReset
-	pathColor := colorYellow + r.Path + colorReset
-	lineNumColor := colorGreen + fmt.Sprint(r.LineNum) + colorReset
+	coloredPath := colorYellow + r.Path + colorReset
+	coloredLineNum := colorGreen + fmt.Sprintf("%d", r.LineNum) + colorReset
 
-	// Print the string, using FormattedResult and
-	fmt.Printf("%s > line %s > %s%s%s \n", pathColor, lineNumColor, beforePattern, patternColor, afterPattern)
+	fmt.Printf("%s > line n. %s > ", coloredPath, coloredLineNum)
+	for c := range r.Line {
+		for _, pos := range matchedPositions {
 
+			if c == pos.diffStartPos {
+				fmt.Print(colorRed)
+			} else if c == pos.diffEndPos {
+				fmt.Print(colorReset)
+			}
+		}
+		fmt.Print(string(r.Line[c]))
+	}
+
+	fmt.Println()
 }

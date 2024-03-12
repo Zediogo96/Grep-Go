@@ -106,7 +106,7 @@ func main() {
 		for {
 			select {
 			case r := <-results:
-				utils.PrintColoredResult(r, searchTerm)
+				utils.PrintResultsColored(r, searchTerm)
 			case <-blockWorkersWg:
 				// Make sure channel is empty before aborting display goroutine
 				if len(results) == 0 {

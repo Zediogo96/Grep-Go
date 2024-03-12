@@ -4,7 +4,7 @@ This is a large textThis is a large textThis is a large textThis is a large text
 
 
 
-boas - bo %#"$" boas -- --
+boas - bo %#A boas --adas
 
 This is a large textThis is a large text
 This is a large textThis is a large text
